@@ -7,7 +7,7 @@ import time
 driver = webdriver.Chrome()
 
 # 2. Decirle a dónde ir
-driver.get("https://www.google.com")
+driver.get("https://www.jw.org")
 
 # 3. Imprimir el título de la página en la consola
 print("El título de la página es: " + driver.title)
