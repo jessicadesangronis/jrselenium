@@ -35,13 +35,24 @@ def initialize_driver():
 
 # --- Lógica de Login/Logout ---
 # Define el usuario a usar (la contraseña se obtiene del sitio web de demo)
-def login(driver, user_name_to_use): # Acepta un argumento
+def login(driver):
     # Realiza el proceso de inicio de sesión en saucedemo.com.
-    input_username = driver.find_element(By.ID, "user-name")
-    input_username.send_keys(user_name_to_use) # Usa el argumento
-
     # Bloque para obtener la contraseña de la página (como lo hace el código original)
     # *Nota: La etiqueta “standard_user” que es el nombre de usuario de la página demo, no tiene un ID, CCS_SELECTOR, ni un CLASS_NAME, además no es un elemento independiente, sino que forma parte de un DIV PADRE, por esta razón usaremos código para extraer con XPATH el contenedor div padre completo, y luego extraer la segunda línea “standard_user”, luego se repite con la contraseña.
+
+    try:
+        container_username = driver.find_element(By.XPATH, "//*[@id="login_credentials"]/text()[1]")
+        # split crea un array de elementos con cada ENTER
+        split_container_username = container_username.text.split("\n")
+        # Se asume que el segundo elemento de la lista dividida es la contraseña
+        user_name = split_container_username[1] 
+    except:
+        user_name = "standard_user" 
+        print("Advertencia: No se pudo obtener el numbre de usuario por XPath.")
+    input_username = driver.find_element(By.ID, "user-name")
+    input_username.send_keys(user_name)
+
+    #Se repite el proceso con la contrasena
     try:
         container_password = driver.find_element(By.XPATH, "//*[@id='root']/div/div[2]/div[2]/div[2]/div[2]")
         split_container_password = container_password.text.split("\n")
@@ -49,7 +60,7 @@ def login(driver, user_name_to_use): # Acepta un argumento
         password = split_container_password[1] 
     except:
         password = "secret_sauce" 
-        print("Advertencia: No se pudo obtener la contraseña por XPath. Usando 'secret_sauce'.")
+        print("Advertencia: No se pudo obtener la contraseña por XPath.")
 
     input_password = driver.find_element(By.ID, "password") 
     input_password.send_keys(password) 
@@ -60,15 +71,13 @@ def login(driver, user_name_to_use): # Acepta un argumento
     return driver
 
 def main():
-    # Función principal que ejecuta la secuencia de prueba.
-
-    user_name = "standard_user" 
+    # Función principal que ejecuta la secuencia de prueba. 
     
     print("Iniciando prueba de Login/Logout en Chrome...")
     driver = initialize_driver() 
     driver.get("https://www.saucedemo.com/")
     
-    driver = login(driver, user_name) # Pasa el argumento
+    driver = login(driver)
 
     # Verifica si el inicio de sesión fue exitoso
     if driver.current_url == "https://www.saucedemo.com/inventory.html":
@@ -77,14 +86,14 @@ def main():
         menu_button = driver.find_element(By.ID, "react-burger-menu-btn")
         menu_button.click()
         
-        # INSERTO UNA NUEVA ESPERA AQUÍ para que el menú lateral se abra ===
-        # El ID del contenedor del menú lateral es 'menu-sidebar' (o similar)
+        # INSERTO UNA NUEVA ESPERA AQUÍ para que el menú lateral se abra  ---
+        # El ID del contenedor del menú lateral es 'menu-sidebar' 
         # Usaremos el ID de la barra lateral de Sauce Demo: "menu-sidebar"
         WebDriverWait(driver, 5).until(
             EC.visibility_of_element_located((By.CLASS_NAME, "bm-menu-wrap"))
         )
         
-        # La Espera por el botón de Logout ahora funcionará correctamente
+        # La Espera por el botón de Logout ahora funcionará correctamente, al estar disponible, se clikea
         logout_button = WebDriverWait(driver, 10).until( 
             EC.element_to_be_clickable((By.ID, "logout_sidebar_link")) 
         )
