@@ -5,31 +5,40 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait 
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 import time
 
 # --- Inicialización del Driver ---
 def initialize_driver():
-    # driver = webdriver.Chrome() -> re reemplazo por la siguiente línea de código
-    # Inicializa y descarga/usa automáticamente el driver de Chrome más reciente
-    # driver = webdriver.Chrome(ChromeDriverManager().install())
-    # Fue reemplazada porque me dava el error AttributeError: 'str' object has no attribute 'capabilities'
+ # Configurar opciones para deshabilitar las ventanas emergentes del navegador
+    chrome_options = Options()
     
-    # 1. Obtener la ruta del driver usando webdriver-manager
+    # 1. Deshabilitar el pop-up de 'Guardar Contraseña'
+    chrome_options.add_argument("--disable-save-password-bubble")
+    # 2. Deshabilitar el pop-up de 'Notificaciones' (útil en general)
+    chrome_options.add_argument("--disable-notifications")
+    # 3. Deshabilitar la extensión de administrador de contraseñas
+    # Esto ayuda a evitar el pop-up de 'Cambia la contraseña' que viste
+    prefs = {"credentials_enable_service": False,
+             "profile.password_manager_enabled": False}
+    chrome_options.add_experimental_option("prefs", prefs)
+
+# Configurar el servicio 
+    # Inicializa y descarga/usa automáticamente el driver de Chrome más reciente
+    # Usamos la clase Service para pasar la ruta del driver a webdriver.Chrome
     driver_path = ChromeDriverManager().install()
-    # 2. Crear un objeto Service con esa ruta
     service = Service(executable_path=driver_path)
-    # 3. Pasar el objeto Service a webdriver.Chrome()
-    driver = webdriver.Chrome(service=service)
+    # Crear el driver, pasando tanto el servicio como las opciones
+    driver = webdriver.Chrome(service=service, options=chrome_options) 
     
     return driver
 
 # --- Lógica de Login/Logout ---
 # Define el usuario a usar (la contraseña se obtiene del sitio web de demo)
-user_name = "standard_user" 
-def login(driver):
+def login(driver, user_name_to_use): # Acepta un argumento
     # Realiza el proceso de inicio de sesión en saucedemo.com.
     input_username = driver.find_element(By.ID, "user-name")
-    input_username.send_keys(user_name)
+    input_username.send_keys(user_name_to_use) # Usa el argumento
 
     # Bloque para obtener la contraseña de la página (como lo hace el código original)
     # *Nota: La etiqueta “standard_user” que es el nombre de usuario de la página demo, no tiene un ID, CCS_SELECTOR, ni un CLASS_NAME, además no es un elemento independiente, sino que forma parte de un DIV PADRE, por esta razón usaremos código para extraer con XPATH el contenedor div padre completo, y luego extraer la segunda línea “standard_user”, luego se repite con la contraseña.
@@ -52,10 +61,15 @@ def login(driver):
 
 def main():
     # Función principal que ejecuta la secuencia de prueba.
+
+    user_name = "standard_user" 
+    
     print("Iniciando prueba de Login/Logout en Chrome...")
     driver = initialize_driver() 
     driver.get("https://www.saucedemo.com/")
-    driver = login(driver)
+    
+    driver = login(driver, user_name) # Pasa el argumento
+
     # Verifica si el inicio de sesión fue exitoso
     if driver.current_url == "https://www.saucedemo.com/inventory.html":
         # Cierra sesión
@@ -63,10 +77,17 @@ def main():
         menu_button = driver.find_element(By.ID, "react-burger-menu-btn")
         menu_button.click()
         
-        # time.sleep(1)  Es posible usar un sleep simple, pero es mejor usar una espera explícita, hasta que el elemento “esté presente” 
-        WebDriverWait(driver, 10).until( EC.element_to_be_clickable((By.ID, "logout_sidebar_link")) ) 
+        # INSERTO UNA NUEVA ESPERA AQUÍ para que el menú lateral se abra ===
+        # El ID del contenedor del menú lateral es 'menu-sidebar' (o similar)
+        # Usaremos el ID de la barra lateral de Sauce Demo: "menu-sidebar"
+        WebDriverWait(driver, 5).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, "bm-menu-wrap"))
+        )
         
-        logout_button = driver.find_element(By.ID, "logout_sidebar_link")
+        # La Espera por el botón de Logout ahora funcionará correctamente
+        logout_button = WebDriverWait(driver, 10).until( 
+            EC.element_to_be_clickable((By.ID, "logout_sidebar_link")) 
+        )
         logout_button.click()
         print('LogOut success')
         
@@ -74,7 +95,6 @@ def main():
     else:
         print("Login failed")
         driver.quit() # Cierra el navegador
-
 
 if __name__ == '__main__':
     main()
