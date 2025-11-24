@@ -39,13 +39,15 @@ def login(driver):
     # Realiza el proceso de inicio de sesión en saucedemo.com.
     # Bloque para obtener la contraseña de la página (como lo hace el código original)
     # *Nota: La etiqueta “standard_user” que es el nombre de usuario de la página demo, no tiene un ID, CCS_SELECTOR, ni un CLASS_NAME, además no es un elemento independiente, sino que forma parte de un DIV PADRE, por esta razón usaremos código para extraer con XPATH el contenedor div padre completo, y luego extraer la segunda línea “standard_user”, luego se repite con la contraseña.
-
     try:
-        container_username = driver.find_element(By.XPATH, "//*[@id="login_credentials"]/text()[1]")
+        # class="login_credentials"
+        container_username = driver.find_element(By.XPATH, "//div[@class='login_credentials']")
+       
         # split crea un array de elementos con cada ENTER
-        split_container_username = container_username.text.split("\n")
-        # Se asume que el segundo elemento de la lista dividida es la contraseña
-        user_name = split_container_username[1] 
+        # Obtenemos todo el texto y lo dividimos por nueva línea
+        split_array = container_username.text.split('\n')
+        user_name = split_array[1] # Esto debería ser 'standard_user'
+  
     except:
         user_name = "standard_user" 
         print("Advertencia: No se pudo obtener el numbre de usuario por XPath.")
@@ -54,10 +56,16 @@ def login(driver):
 
     #Se repite el proceso con la contrasena
     try:
-        container_password = driver.find_element(By.XPATH, "//*[@id='root']/div/div[2]/div[2]/div[2]/div[2]")
-        split_container_password = container_password.text.split("\n")
-        # Se asume que el segundo elemento de la lista dividida es la contraseña
-        password = split_container_password[1] 
+        # class="login_password"
+
+
+        container_password = driver.find_element(By.XPATH, "//div[@class='login_password']")
+       
+        # split crea un array de elementos con cada ENTER
+        # Obtenemos todo el texto y lo dividimos por nueva línea
+        split_array2 = container_password.text.split('\n')
+        password = split_array2[1] # Esto debería ser 'secret_sauce'
+
     except:
         password = "secret_sauce" 
         print("Advertencia: No se pudo obtener la contraseña por XPath.")
@@ -89,7 +97,7 @@ def main():
         # INSERTO UNA NUEVA ESPERA AQUÍ para que el menú lateral se abra  ---
         # El ID del contenedor del menú lateral es 'menu-sidebar' 
         # Usaremos el ID de la barra lateral de Sauce Demo: "menu-sidebar"
-        WebDriverWait(driver, 5).until(
+        WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.CLASS_NAME, "bm-menu-wrap"))
         )
         
